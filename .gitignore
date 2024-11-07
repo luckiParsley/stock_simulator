@@ -1,0 +1,8 @@
+questions.txt
+stock_simulator.log
+__pycache__/
+*/__pycache__/
+*.pyc
+flask_session/
+node_modules/
+static/dist/

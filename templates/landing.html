@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Investment Simulator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing_page.css') }}">
+</head>
+
+<body>
+    <div class="landing-container">
+        <div class="landing-title">
+            <h1>Investment Simulator</h1>
+            <p>Simulate investments and track your portfolio performance with real market data</p>
+        </div>
+
+        <div class="form-widget">
+            <h2>Start Simulation</h2>
+            <form action="{{ url_for('main.submit') }}" method="POST">
+                <div class="form-group">
+                    <label for="portfolio_name">Portfolio Name</label>
+                    <input type="text" id="portfolio_name" name="portfolio_name" required
+                        placeholder="My Investment Portfolio">
+                </div>
+
+                <div class="form-group">
+                    <label for="starting_balance">Starting Balance ($)</label>
+                    <input type="number" id="starting_balance" name="starting_balance" min="0" step="0.01" required
+                        placeholder="10000.00">
+                </div>
+
+                <div class="form-group">
+                    <label for="start_date">Start Year</label>
+                    <select id="start_date" name="start_date" required>
+                        {% for year in years %}
+                        <option value="{{ year }}">{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <button type="submit">Start Simulation</button>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>

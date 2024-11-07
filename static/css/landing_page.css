@@ -1,0 +1,117 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Container styles */
+.landing-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 480px;
+    padding: 2rem;
+    margin: 2rem auto;
+}
+
+/* Title section */
+.landing-title {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.landing-title h1 {
+    color: #2c3e50;
+    font-size: 2rem;
+    margin: 0 0 0.5rem 0;
+}
+
+.landing-title p {
+    color: #666;
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+/* Form styles */
+.form-widget {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.form-widget h2 {
+    color: #2c3e50;
+    font-size: 1.25rem;
+    margin: 0 0 1.5rem 0;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #4a5568;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #7db2eb;
+    box-shadow: 0 0 0 3px rgba(125, 178, 235, 0.2);
+}
+
+/* Button styles */
+button {
+    background-color: #7db2eb;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    width: 100%;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: #6a9ed6;
+}
+
+/* Media queries for responsiveness */
+@media (max-width: 480px) {
+    .landing-container {
+        margin: 1rem;
+        padding: 1.5rem;
+    }
+
+    .form-widget {
+        padding: 1rem;
+    }
+
+    .landing-title h1 {
+        font-size: 1.75rem;
+    }
+}

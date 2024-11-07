@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ symbol }} - Stock Details</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+
+<body>
+    <!-- Top Navigation Bar -->
+    <div class="top-bar">
+        <div class="nav-buttons">
+            <a href="#reports" class="disabled">Reports</a>
+            <a href="#browse" class="disabled">Browse</a>
+            <a href="{{ url_for('main.home') }}">Home</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Stock Information Grid -->
+        <div class="stock-info-grid">
+            <!-- Left Column -->
+            <div class="stock-info-left">
+                <div class="box">
+                    <div class="stock-header">
+                        <h1>{{ symbol }} - {{ meta_data.longName }}</h1>
+                        <div class="stock-price">
+                            ${{ "%.2f"|format(current_price) }}
+                            <span
+                                class="{% if current_price > previous_close %}value-positive{% elif current_price < previous_close %}value-negative{% endif %}">
+                                ({{ "%.2f"|format((current_price - previous_close) / previous_close * 100) }}%)
+                            </span>
+                        </div>
+                    </div>
+                    <div class="stock-metadata">
+                        <p><strong>Sector:</strong> {{ meta_data.sector }}</p>
+                        <p><strong>Industry:</strong> {{ meta_data.industry }}</p>
+                        {% if meta_data.website != 'N/A' %}
+                        <p><strong>Website:</strong> <a href="{{ meta_data.website }}" target="_blank"
+                                class="stock-link">Visit</a></p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Stock Chart Box -->
+                <div class="box chart-box">
+                    {{ candlestick_chart|safe }}
+                </div>
+
+                <!-- Company Description Box -->
+                <div class="box">
+                    <h2>Company Description</h2>
+                    <div class="company-description">
+                        {{ meta_data.longBusinessSummary }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="stock-info-right">
+                <!-- Current Position Info (if exists) -->
+                {% if symbol in portfolio.positions %}
+                <div class="box">
+                    <h2>Current Position</h2>
+                    <div class="position-details">
+                        <p><strong>Side:</strong> {{ portfolio.positions[symbol].side }}</p>
+                        <p><strong>Shares:</strong> {{ portfolio.positions[symbol].shares }}</p>
+                        <p><strong>Avg. Price:</strong> ${{ "%.2f"|format(portfolio.positions[symbol].avg_price) }}</p>
+                        <p><strong>Current Price:</strong> ${{ "%.2f"|format(current_price) }}</p>
+                        <p
+                            class="{% if portfolio.positions[symbol].unrealized_pnl > 0 %}value-positive{% else %}value-negative{% endif %}">
+                            <strong>Unrealized P&L:</strong> ${{
+                            "%.2f"|format(portfolio.positions[symbol].unrealized_pnl) }}
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Trading Widget -->
+                <div class="box">
+                    <h2>Trade {{ symbol }}</h2>
+                    <p>Available Cash:<br>
+                        ${{ "%.2f"|format(portfolio.cash) }}</p>
+
+                    <form action="{{ url_for('order.place_order') }}" method="POST" class="trade-form">
+                        <input type="hidden" name="symbol" value="{{ symbol }}">
+                        <div class="form-group">
+                            <label>Order Type:</label>
+                            <select name="order_type" required>
+                                <option value="market">Market</option>
+                                <option value="limit">Limit</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Shares:</label>
+                            <input type="number" name="shares" required min="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Side:</label>
+                            <select name="side" required>
+                                <option value="buy">Buy</option>
+                                <option value="sell">Sell</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="button">Place Order</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

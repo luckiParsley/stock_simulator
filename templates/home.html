@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investment Portfolio</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <!-- React Dependencies -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Recharts Library -->
+    <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
+</head>
+
+<body>
+    <!-- Top Navigation Bar -->
+    <div class="top-bar">
+        <div class="nav-buttons">
+            <a href="#reports" class="disabled">Reports</a>
+            <a href="#browse" class="disabled">Browse</a>
+            <a href="{{ url_for('main.home') }}">Home</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="main-layout">
+            <!-- Left Column -->
+            <div class="left-column">
+                <div class="box">
+                    <h2>{{ portfolio.name }}</h2>
+                    <div class="portfolio-summary">
+                        <p>Account Value: ${{ "%.2f"|format(account_value) }}</p>
+                        <p>Free Cash: ${{ "%.2f"|format(portfolio.cash) }}</p>
+                    </div>
+
+                    {% if portfolio.get('yearly_pnl') and (current_date.year|string) in portfolio.yearly_pnl %}
+                    {% set year = current_date.year|string %}
+                    {% set total_pnl = portfolio.yearly_pnl[year].total %}
+                    {% set pnl_percentage = (total_pnl / (account_value - total_pnl) * 100) if account_value !=
+                    total_pnl else 0 %}
+                    <div class="yearly-summary">
+                        <h3>{{ current_date.year }} Performance</h3>
+                        <p>Realized P&L: ${{ "%.2f"|format(portfolio.yearly_pnl[year].realized) }}</p>
+                        <p>Unrealized P&L: ${{ "%.2f"|format(portfolio.yearly_pnl[year].unrealized) }}</p>
+                        <p>Total P&L: ${{ "%.2f"|format(total_pnl) }} ({{ "%.2f"|format(pnl_percentage) }}%)</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="right-column">
+                <!-- Top Row -->
+                <div class="top-widgets">
+                    <!-- Date Selection Box -->
+                    <div class="box">
+                        <h2>Simulation Date: {{ current_date_str }}</h2>
+                        <form id="simulation-date-form" action="{{ url_for('main.submit_date') }}" method="POST">
+                            <div class="form-group">
+                                <label for="sim_date">Select Simulation Date:</label>
+                                <input type="date" id="sim_date" name="sim_date" value="{{ current_date_str }}"
+                                    min="{{ current_date.strftime('%Y-01-01') }}" max="2024-12-31" required>
+                            </div>
+                            <button type="submit" class="button">Simulate to Date</button>
+                        </form>
+                    </div>
+
+                    <!-- Stock Search Box -->
+                    <div class="box">
+                        <h2>Search for a Stock</h2>
+                        <form id="stock-search-form" action="{{ url_for('stock.search_stock') }}" method="POST">
+                            <div class="form-group">
+                                <label for="stock_symbol">By Ticker:</label>
+                                <input type="text" id="stock_symbol" name="stock_symbol" required>
+                            </div>
+                            <button type="submit" class="button">Search</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Info Widgets -->
+                <div class="info-widgets">
+                    <!-- Portfolio Statistics -->
+                    <div class="info-section">
+                        <h2>Portfolio Statistics</h2>
+                        <div class="stat-row">
+                            <span>Total Positions:</span>
+                            <span>{{ portfolio.positions|length }}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Cash Allocation:</span>
+                            <span>{{ "%.1f"|format(portfolio.cash / account_value * 100) }}%</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Active Orders:</span>
+                            <span>{{ portfolio.orders.active_orders|length }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Recent Trading Activity -->
+                    <div class="info-section">
+                        <h2>Recent Trading Activity</h2>
+                        {% set filled_orders = portfolio.orders.filled_orders|sort(attribute='date_filled',
+                        reverse=True) %}
+                        {% for order in filled_orders[:5] %}
+                        <div class="activity-row">
+                            {{ order.date_filled }}: {{ order.side|capitalize }} {{ order.amount }} {{ order.asset }}
+                        </div>
+                        {% else %}
+                        <div class="activity-row">No recent activity</div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Market Overview -->
+                    <div class="info-section">
+                        <h2>Market Overview</h2>
+                        <div class="stat-row">
+                            <span>Trading Day:</span>
+                            <span>{{ current_date_str }}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Portfolio Holdings:</span>
+                            <span>{{ portfolio.positions|length }}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Available Cash:</span>
+                            <span>${{ "%.2f"|format(portfolio.cash) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Portfolio Chart -->
+        <div class="box4">
+            <h2>Portfolio Performance</h2>
+            <div id="portfolio-chart"></div>
+        </div>
+
+        <!-- Portfolio Management Container -->
+        <div class="box5">
+            <h2>Portfolio Management</h2>
+
+            <!-- Current Positions Section -->
+            <div class="section-container">
+                <h3>Current Positions</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Asset</th>
+                                <th>Side</th>
+                                <th>Shares</th>
+                                <th>Value</th>
+                                <th>Average Price</th>
+                                <th>Current Price</th>
+                                <th>Difference</th>
+                                <th>% Difference</th>
+                                <th>Unrealized P&L</th>
+                                <th>Realized P&L</th>
+                                <th>Total P&L</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for asset, position in portfolio.positions.items() %}
+                            {% set year = current_date.year|string %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('stock.stock_landing', symbol=asset) }}"
+                                        class="position-ticker">
+                                        {{ asset }}
+                                    </a>
+                                </td>
+                                <td>{{ position.side }}</td>
+                                <td>{{ position.shares }}</td>
+                                <td>${{ "%.2f"|format(position.value) }}</td>
+                                <td>${{ "%.2f"|format(position.avg_price) }}</td>
+                                <td>${{ "%.2f"|format(position.current_price) }}</td>
+                                <td
+                                    class="{% if position.difference > 0 %}value-positive{% elif position.difference < 0 %}value-negative{% endif %}">
+                                    ${{ "%.2f"|format(position.difference) }}
+                                </td>
+                                <td
+                                    class="{% if position.percent_difference > 0 %}value-positive{% elif position.percent_difference < 0 %}value-negative{% endif %}">
+                                    {{ "%.2f"|format(position.percent_difference) }}%
+                                </td>
+                                <td
+                                    class="{% if position.unrealized_pnl > 0 %}value-positive{% elif position.unrealized_pnl < 0 %}value-negative{% endif %}">
+                                    ${{ "%.2f"|format(position.unrealized_pnl) }}
+                                </td>
+                                <td>${{ "%.2f"|format(position.get('yearly_pnl', {}).get(year, {}).get('realized', 0))
+                                    }}</td>
+                                <td>${{ "%.2f"|format(position.get('yearly_pnl', {}).get(year, {}).get('total', 0)) }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if portfolio.positions and portfolio.get('yearly_pnl') and (current_date.year|string) in
+                            portfolio.yearly_pnl %}
+                            <tr class="totals-row">
+                                <td colspan="8"><strong>Portfolio Totals:</strong></td>
+                                <td>${{ "%.2f"|format(portfolio.yearly_pnl[year].unrealized) }}</td>
+                                <td>${{ "%.2f"|format(portfolio.yearly_pnl[year].realized) }}</td>
+                                <td>${{ "%.2f"|format(portfolio.yearly_pnl[year].total) }}</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Active Orders Section -->
+            <div class="section-container">
+                <h3>Active Orders</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Id</th>
+                                <th>Asset</th>
+                                <th>Side</th>
+                                <th>Order Type</th>
+                                <th>Price</th>
+                                <th>Amount</th>
+                                <th>Value</th>
+                                <th>Date Placed</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in portfolio.orders.active_orders %}
+                            <tr>
+                                <td>{{ order.id }}</td>
+                                <td>{{ order.asset }}</td>
+                                <td>{{ order.side }}</td>
+                                <td>{{ order.order_type }}</td>
+                                <td>${{ "%.2f"|format(order.price) }}</td>
+                                <td>{{ order.amount }}</td>
+                                <td>${{ "%.2f"|format(order.value) }}</td>
+                                <td>{{ order.date_placed }}</td>
+                                <td>
+                                    <button class="button" onclick="cancelOrder({{ order.id }})">Cancel</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Filled Orders Section -->
+            <div class="section-container">
+                <button id="toggle-filled-orders" class="button">Show/Hide Filled Orders</button>
+                <div id="filled-orders-container" style="display: none;">
+                    <h3>Filled Orders</h3>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Id</th>
+                                    <th>Asset</th>
+                                    <th>Side</th>
+                                    <th>Order Type</th>
+                                    <th>Price</th>
+                                    <th>Amount</th>
+                                    <th>Value</th>
+                                    <th>Date Placed</th>
+                                    <th>Date Filled</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in portfolio.orders.filled_orders %}
+                                <tr>
+                                    <td>{{ order.id }}</td>
+                                    <td>{{ order.asset }}</td>
+                                    <td>{{ order.side }}</td>
+                                    <td>{{ order.order_type }}</td>
+                                    <td>${{ "%.2f"|format(order.price) }}</td>
+                                    <td>{{ order.amount }}</td>
+                                    <td>${{ "%.2f"|format(order.value) }}</td>
+                                    <td>{{ order.date_placed }}</td>
+                                    <td>{{ order.date_filled }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Info Modal -->
+    <div id="project-info-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>About This Project</h2>
+            <div class="project-info">
+                <p>This investment portfolio simulator allows users to:</p>
+                <ul>
+                    <li>Create and manage a simulated investment portfolio</li>
+                    <li>Track performance over time with historical market data</li>
+                    <li>Place simulated trades with real market prices</li>
+                    <li>Analyze portfolio performance with interactive charts</li>
+                </ul>
+                <p><strong>Coming Soon:</strong></p>
+                <ul>
+                    <li>Detailed performance reports and analytics</li>
+                    <li>Advanced stock browsing and screening tools</li>
+                    <li>Portfolio optimization suggestions</li>
+                    <li>Risk analysis tools</li>
+                </ul>
+                <p class="project-note">This is a demonstration project built with Python/Flask, React, and various
+                    financial APIs.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Make portfolio history data available to JavaScript -->
+    <script>
+        window.portfolioHistory = {{ portfolio_history | tojson | safe }};
+    </script>
+
+    <!-- Load your bundled JavaScript -->
+    <script src="{{ url_for('static', filename='dist/bundle.js') }}"></script>
+</body>
+
+</html>
